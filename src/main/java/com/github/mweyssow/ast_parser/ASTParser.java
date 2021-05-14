@@ -19,9 +19,15 @@ import java.lang.StringBuffer;
 
 public class ASTParser {
     private static final String functionCallFile = "function_call_sequences.txt";
-    private static Path filePath;
+    private static final String functionDefFile = "function_def.txt";
+
+    private static Path fCallFp;
+    private static Path fDefFp;
+
+    private final static StringBuffer fCallBuffer = new StringBuffer();
+    private final static StringBuffer fDefBuffer = new StringBuffer();
+
     private static Integer nbFilesParsed = 0;
-    private final static StringBuffer strToFile = new StringBuffer();
 
     public static void main(String[] args) {
         initFiles(args[1]);
@@ -35,32 +41,43 @@ public class ASTParser {
                             try {
                                 System.out.println("Parsing file : " + f.toString());
                                 SourceRoot sourceRoot = new SourceRoot(
-                                        CodeGenerationUtils.mavenModuleRoot(ASTParser.class).resolve(args[0])
+                                    CodeGenerationUtils.mavenModuleRoot(ASTParser.class).resolve(args[0])
                                 );
                                 CompilationUnit cu = sourceRoot.parse("", f.toString());
                                 cu.accept(new ClassOrInterfaceVisitor(), null);
 
-                                // Save methods data
+                                // save function sequences data
                                 Files.write(
-                                    filePath,
-                                    String.valueOf(strToFile).getBytes(),
+                                    fCallFp,
+                                    String.valueOf(fCallBuffer).getBytes(),
                                     StandardOpenOption.APPEND
                                 );
+
+                                // save function def data
+                                Files.write(
+                                    fDefFp,
+                                    String.valueOf(fDefBuffer).getBytes(),
+                                    StandardOpenOption.APPEND
+                                );
+
                                 nbFilesParsed += 1;
-                                strToFile.delete(0, strToFile.length());
+
+                                // Flush buffers
+                                fCallBuffer.delete(0, fCallBuffer.length());
+                                fDefBuffer.delete(0, fDefBuffer.length());
                             } catch (Exception e) {
                                 System.out.println("Error happened : flushing buffer");
                             } catch(StackOverflowError soe) {
                                 System.out.println("StackOverflowError while parsing");
                             } finally {
-                                strToFile.delete(0, strToFile.length());
+                                fCallBuffer.delete(0, fCallBuffer.length());
+                                fDefBuffer.delete(0, fDefBuffer.length());
                             }
                         }
                     });
         } catch(IOException ioe) {
             ioe.printStackTrace();
         }
-
         long endTotalTime = System.currentTimeMillis();
         System.out.println(
             "Total execution time : " + (endTotalTime - startTotalTime) + "ms (" + nbFilesParsed + " files)"
@@ -73,7 +90,8 @@ public class ASTParser {
             if (!Files.exists(Paths.get("output"))) {
                 dir = Files.createDirectory(Paths.get("output"));
             }
-            filePath = Files.createFile(dir.resolve(functionCallFile));
+            fCallFp = Files.createFile(dir.resolve(functionCallFile));
+            fDefFp = Files.createFile(dir.resolve(functionDefFile));
         } catch(IOException ioe) {
             ioe.printStackTrace();
         }
@@ -89,7 +107,9 @@ public class ASTParser {
                 } else {
                     c.accept(new MethodDeclarationVisitor(), null);
                 }
-            } catch (Exception ioe) { }
+            } catch (Exception ioe) {
+                // System.out.println(ioe.getMessage());
+            }
         }
     }
 
@@ -108,11 +128,15 @@ public class ASTParser {
         @Override
         public void visit(MethodDeclaration m, Object arg) {
             super.visit(m, arg);
+            // add the whole function tokens to the buffer
+            fDefBuffer.append(m.toString().replaceAll("[^\\S ]+", " "));
+            fDefBuffer.append("\n");
+
             String content = m.getName().toString();
             try {
-                strToFile.append(content);
+                fCallBuffer.append(content);
                 m.accept(new MethodCallVisitor(), null);
-                strToFile.append("\n");
+                fCallBuffer.append("\n");
             } catch (Exception ioe) {
                 // System.out.println(ioe.getMessage());
             }
@@ -123,17 +147,22 @@ public class ASTParser {
         @Override
         public void visit(MethodDeclaration m, Object arg) {
             super.visit(m, arg);
+            // add the whole function tokens to the buffer
+            fDefBuffer.append(m.toString().replaceAll("[^\\S ]+", " "));
+            fDefBuffer.append("\n");
+
             Node classData = m.getParentNode().get();
             Boolean isInInnerClass = classData.accept(new IsInnerClassVisitor(), null);
             try {
                 if (isInInnerClass.equals(Boolean.FALSE)) {
                     String content = m.getName().toString();
-                    strToFile.append(content);
+                    fCallBuffer.append(content);
                     m.accept(new MethodCallVisitor(), null);
-                    strToFile.append("\n");
+                    fCallBuffer.append("\n");
                 }
-            } catch (NullPointerException e) {  }
-            catch (Exception ioe) {  }
+            } catch (NullPointerException e) {
+                // System.out.println(e.getMessage());
+            }
         }
     }
 
@@ -143,7 +172,7 @@ public class ASTParser {
             super.visit(m, arg);
             String content = " " + m.getName();
             try {
-                strToFile.append(content);
+                fCallBuffer.append(content);
             } catch (Exception ioe) {
                 System.out.println(ioe.getMessage());
             }
