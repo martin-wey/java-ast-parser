@@ -74,6 +74,9 @@ final class CharSequenceReader extends Reader {
 
   @Override
   public synchronized int read(CharBuffer target) throws IOException {
+    /*
+    test add comment
+     */
     checkNotNull(target);
     checkOpen();
     requireNonNull(seq); // safe because of checkOpen

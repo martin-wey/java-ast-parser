@@ -1,5 +1,6 @@
 package com.github.mweyssow.ast_parser;
 
+import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.MethodDeclaration;
@@ -19,7 +20,7 @@ import java.lang.StringBuffer;
 
 public class ASTParser {
     private static final String functionCallFile = "function_call_sequences.txt";
-    private static final String functionDefFile = "function_def.txt";
+    private static final String functionDefFile = "function_tokens.txt";
 
     private static Path fCallFp;
     private static Path fDefFp;
@@ -43,6 +44,8 @@ public class ASTParser {
                                 SourceRoot sourceRoot = new SourceRoot(
                                     CodeGenerationUtils.mavenModuleRoot(ASTParser.class).resolve(args[0])
                                 );
+                                // the parser won't handle comments
+                                sourceRoot.getParserConfiguration().setAttributeComments(false);
                                 CompilationUnit cu = sourceRoot.parse("", f.toString());
                                 cu.accept(new ClassOrInterfaceVisitor(), null);
 
