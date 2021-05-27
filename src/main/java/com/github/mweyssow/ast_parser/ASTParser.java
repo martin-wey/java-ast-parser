@@ -131,12 +131,12 @@ public class ASTParser {
         @Override
         public void visit(MethodDeclaration m, Object arg) {
             super.visit(m, arg);
-            // add the whole function tokens to the buffer
-            fDefBuffer.append(m.toString().replaceAll("[^\\S ]+", " "));
-            fDefBuffer.append("\n");
 
             String content = m.getName().toString();
             try {
+                // add the whole function tokens to the buffer
+                fDefBuffer.append(m.toString().replaceAll("[^\\S ]+", " "));
+                fDefBuffer.append("\n");
                 fCallBuffer.append(content);
                 m.accept(new MethodCallVisitor(), null);
                 fCallBuffer.append("\n");
@@ -150,14 +150,14 @@ public class ASTParser {
         @Override
         public void visit(MethodDeclaration m, Object arg) {
             super.visit(m, arg);
-            // add the whole function tokens to the buffer
-            fDefBuffer.append(m.toString().replaceAll("[^\\S ]+", " "));
-            fDefBuffer.append("\n");
 
             Node classData = m.getParentNode().get();
             Boolean isInInnerClass = classData.accept(new IsInnerClassVisitor(), null);
             try {
                 if (isInInnerClass.equals(Boolean.FALSE)) {
+                    // add the whole function tokens to the buffer
+                    fDefBuffer.append(m.toString().replaceAll("[^\\S ]+", " "));
+                    fDefBuffer.append("\n");
                     String content = m.getName().toString();
                     fCallBuffer.append(content);
                     m.accept(new MethodCallVisitor(), null);
